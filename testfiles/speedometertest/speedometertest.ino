@@ -2,8 +2,6 @@
 ///// Fungerende kode for speedometer og avstand kjørt //////
 /////////////////////////////////////////////////////////////
 
-
-#include "../../../variables/speedometer/speedometer.ino"
 #include <Zumo32U4.h>
 #include <Wire.h>
 
@@ -11,7 +9,7 @@ Zumo32U4Encoders encoder;
 Zumo32U4Motors motors;
 Zumo32U4OLED display;
 
-/*
+
 const float countPerRotation = 75.81 * 12;
 
 unsigned long leftEncoderCount = 0;
@@ -28,7 +26,7 @@ bool showingValues = true;
 
 float centiPerSecond = 0;
 float rotationsPerSecond = 0;
-*/
+
 
 
 float calculateRotation() {
