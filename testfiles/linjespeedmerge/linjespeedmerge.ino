@@ -27,7 +27,7 @@ int timePassedForAverage = 0;
 
 bool showingValues = true;
 
-float centiPerSecond = 0;
+float cmPerSecond = 0;
 float rotationsPerSecond = 0;
 
 const int maxSpeed = 400;
@@ -86,7 +86,7 @@ void displayValues() {
     display.gotoXY(0,0);
     display.print("Speed:");
     display.gotoXY(0,1);
-    display.print(centiPerSecond);
+    display.print(cmPerSecond);
     display.print("cm/s");
     display.gotoXY(0, 6);
     display.print("Distance:");
@@ -160,7 +160,7 @@ void loop() {
         previousRotationCount = rotationCount;
     }
 
-    centiPerSecond = rotationsPerSecond * PI * 3.75; // RPS * omkrets
+    cmPerSecond = rotationsPerSecond * PI * 3.75; // RPS * omkrets
 
     unsigned long currentMillis2 = millis();
 
