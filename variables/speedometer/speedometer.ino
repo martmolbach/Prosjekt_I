@@ -12,5 +12,5 @@ int timePassedForAverage = 0;
 
 bool showingValues = true;
 
-float centiPerSecond = 0;
+float cmPerSecond = 0;
 float rotationsPerSecond = 0;
