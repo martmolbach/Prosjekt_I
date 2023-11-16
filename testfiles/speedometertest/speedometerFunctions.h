@@ -1,10 +1,27 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 #include "speedometerVariables.h"
+#include <Zumo32U4Encoders.h>
+Zumo32U4Encoders encoder;
+
+int calculateEncoderCount()
+{
+    int leftEncoder = encoder.getCountsAndResetLeft();
+    int rightEncoder = encoder.getCountsAndResetRight();
+    int result = (abs(leftEncoder) + abs(rightEncoder)) / 2;
+    return result;
+}
+
+void resetAverageValues()
+{
+    highestSpeed = 0;
+    secondsOverPercentage = 0;
+    averageSpeed = 0;
+}
 
 float calculateRotation()
 {
-    float rotationCounter = leftEncoderCount / countPerRotation;
+    float rotationCounter = encoderCount / countPerRotation;
     return rotationCounter;
 }
 

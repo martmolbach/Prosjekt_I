@@ -15,7 +15,7 @@ Zumo32U4OLED display;
 
 const float countPerRotation = 75.81 * 12;
 
-unsigned long leftEncoderCount = 0;
+unsigned long encoderCount = 0;
 float rotationCount = 0;
 float previousRotationCount = 0;
 
@@ -41,7 +41,7 @@ unsigned int lineSensorValues[NUM_SENSORS];
 
 
 float calculateRotation() {
-    float rotationCounter = leftEncoderCount / countPerRotation;
+    float rotationCounter = encoderCount / countPerRotation;
     return rotationCounter;
 }
 
@@ -149,7 +149,7 @@ void loop() {
 
     int holderEncoderLeft = encoder.getCountsAndResetLeft();
     int holderEncoderRight = encoder.getCountsAndResetRight();
-    leftEncoderCount += (abs(holderEncoderLeft) + abs(holderEncoderRight)) / 2;
+    encoderCount += (abs(holderEncoderLeft) + abs(holderEncoderRight)) / 2;
     rotationCount = calculateRotation();
 
     unsigned long currentMillis = millis();

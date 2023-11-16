@@ -1,6 +1,6 @@
 const float countPerRotation = 75.81 * 12;
 
-unsigned long leftEncoderCount = 0;
+unsigned long encoderCount = 0;
 float rotationCount = 0;
 float previousRotationCount = 0;
 

@@ -5,7 +5,7 @@ const float countPerRotation = 75.81 * 12;
 const float wheelDiameter = 3.75;
 const float maxSpeed = 64;
 
-unsigned long leftEncoderCount = 0;
+unsigned long encoderCount = 0;
 float rotationCount = 0;
 float previousRotationCount = 0;
 
@@ -26,4 +26,11 @@ int secondsOverPercentage = 0;
 float averageSpeed = 0;
 unsigned long previousMillis3 = 0;
 float distanceTraveledLast60Seconds = 0;
+
+enum displayState
+{
+    Normal,
+    Average
+};
+
 #endif
