@@ -4,63 +4,70 @@
 
 #include <Zumo32U4.h>
 #include <Wire.h>
-#include "speedometerVariables.h"
-#include "speedometerFunctions.h"
+#include "speedometer.h"
 #include "displaySettings.h"
+#include "timer.h"
 
 Zumo32U4Motors motors;
-
-displayState currentDisplayState = Normal;
+Speedometer speedometer;
+DisplaySettings displaySettings;
+Zumo32U4Encoders encoder;
+Zumo32U4OLED display;
+Timer timer1;
+Timer timer2;
+Timer timer3;
+DisplayState currentDisplayState = Normal;
 
 void setup()
 {
     encoder.init();
-    setupDisplay();
+    displaySettings.setupDisplay(display);
 }
 
 void loop()
 {
     motors.setSpeeds(400, 400);
-    encoderCount += calculateEncoderCount();
-    rotationCount = calculateRotation();
-    cmPerSecond = calculateCmPerSecond();
-    distanceTraveled = calculateDistanceTraveled();
-    highestSpeed = updateHighestSpeed();
+    speedometer.encoderCount += speedometer.calculateEncoderCount(encoder);
+    speedometer.rotationCount = speedometer.calculateRotation();
+    speedometer.cmPerSecond = speedometer.calculateCmPerSecond();
+    speedometer.distanceTraveled = speedometer.calculateDistanceTraveled();
+    speedometer.highestSpeed = speedometer.updateHighestSpeed();
     unsigned long currentMillis = millis();
 
-    if (currentMillis - previousMillis >= 100)
+    if (timer1.isFinished(100))
     {
-        previousMillis = currentMillis;
-        rotationsPerSecond = calculateRotationPerSecond() * 10;
-        previousRotationCount = rotationCount;
-        percentageOfMaxSpeed += calculatePercentageOfMaxSpeed();
+        timer1.reset();
+        speedometer.rotationsPerSecond = speedometer.calculateRotationPerSecond() * 10;
+        speedometer.previousRotationCount = speedometer.rotationCount;
+        speedometer.percentageOfMaxSpeed += speedometer.calculatePercentageOfMaxSpeed();
     }
 
     switch (currentDisplayState)
     {
     case Normal:
-        displayValues();
-        timePassedForValues = (currentMillis - previousMillis2) / 1000;
-        if (currentMillis - previousMillis3 > 60000)
+        timer1.timePassedForValues = (currentMillis - timer3.previousMillis) / 1000;
+        displaySettings.displayValues(speedometer, display, timer1);
+        if (timer3.isFinished(60000))
         {
-            previousMillis2 = currentMillis;
-            distanceTraveledLast60Seconds = distanceTraveled - distanceTraveledLast60Seconds;
-            secondsOverPercentage = percentageOfMaxSpeed / 10;
-            averageSpeed = calculateAverageSpeed();
-            clearDisplay();
+            timer2.previousMillis = currentMillis;
+            speedometer.distanceTraveledLast60Seconds = speedometer.distanceTraveled - speedometer.distanceTraveledLast60Seconds;
+            speedometer.secondsOverPercentage = speedometer.percentageOfMaxSpeed / 10;
+            speedometer.averageSpeed = speedometer.calculateAverageSpeed();
+            timer1.timePassedForAverage = 0;
+            displaySettings.clearDisplay(display);
             currentDisplayState = Average;
         }
         break;
 
     case Average:
-        displayAverages();
-        timePassedForAverage = (currentMillis - previousMillis2) / 1000;
-        if (currentMillis - previousMillis2 > 3000)
+        timer1.timePassedForAverage = (currentMillis - timer2.previousMillis) / 1000;
+        displaySettings.displayAverages(speedometer, display, timer1);
+        if (timer2.isFinished(5000))
         {
-            previousMillis3 = currentMillis;
-            resetAverageValues();
-            clearDisplay();
-            timePassedForValues = 0;
+            timer3.previousMillis = currentMillis;
+            speedometer.resetAverageValues();
+            displaySettings.clearDisplay(display);
+            timer1.timePassedForValues = 0;
             currentDisplayState = Normal;
         }
         break;

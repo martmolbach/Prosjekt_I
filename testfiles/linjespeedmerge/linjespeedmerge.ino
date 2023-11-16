@@ -4,6 +4,9 @@
 
 #include <Zumo32U4.h>
 #include <Wire.h>
+#include "../speedometertest/speedometerVariables.h"
+#include "../speedometertest/speedometerFunctions.h"
+#include "../speedometertest/displaySettings.h"
 
 Zumo32U4Encoders encoder;
 Zumo32U4Buzzer buzzer;
@@ -12,6 +15,7 @@ Zumo32U4Motors motors;
 Zumo32U4ButtonA buttonA;
 Zumo32U4OLED display;
 
+Speedometer speedometer;
 
 const float countPerRotation = 75.81 * 12;
 
