@@ -21,7 +21,7 @@ struct DisplaySettings
     void displayValues(Speedometer &speedometer, Zumo32U4OLED &display, Timer &timer1)
     {
         display.gotoXY(0, 0);
-        display.print("Speed:");
+        display.print("Speed:");    
         display.gotoXY(0, 1);
         display.print(speedometer.cmPerSecond);
         display.print("cm/s");
