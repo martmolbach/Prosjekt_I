@@ -1,146 +1,130 @@
-/////////////////////////////////////////////////////////////
-///// Fungerende kode for speedometer og avstand kjørt //////
-/////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///// Fungerende kode for speedometer og linjefølger //////
+///////////////////////////////////////////////////////////
 
-
-#include "../../../variables/speedometer/speedometer.ino"
 #include <Zumo32U4.h>
 #include <Wire.h>
+#include <EEPROM.h>
 
 Zumo32U4Encoders encoder;
+Zumo32U4Buzzer buzzer;
+Zumo32U4LineSensors lineSensors;
 Zumo32U4Motors motors;
+Zumo32U4ButtonA buttonA;
 Zumo32U4OLED display;
-
-/*
-const float countPerRotation = 75.81 * 12;
-
-unsigned long leftEncoderCount = 0;
-float rotationCount = 0;
-float previousRotationCount = 0;
+Zumo32U4ButtonB buttonB;
 
 unsigned long previousMillis = 0;
-unsigned long previousMillis2 = 0;
+unsigned long previousNumber = 0;
+unsigned long previousWaitTimeForNext = 0;
+unsigned long lastHealthChange = 0;
 
-int timePassedForValues = 0;
-int timePassedForAverage = 0;
+unsigned long waitTimeForNext = 0;
 
-bool showingValues = true;
+unsigned long allowHealthChangeMillis = 0;
+unsigned long healthChangeMillis = 0;
 
-float centiPerSecond = 0;
-float rotationsPerSecond = 0;
-*/
+const int NUM_SENSORS = 5;
+unsigned int lineSensorValues[NUM_SENSORS];
 
 
-float calculateRotation() {
-    float rotationCounter = leftEncoderCount / countPerRotation;
-    return rotationCounter;
-}
+int batteryLevel = 0;
+int batteryHealth = 0;
 
-float calculateRotationPerSecond() {
-    return rotationCount - previousRotationCount;
-}
+const int batteryHealthAddress = 0;
+const int batteryLevelAddress = 1;
 
-void setup() {
-    encoder.init();
+
+bool allowHealthChange = false;
+bool hasHealthChanged = false;
+
+int randomNumber1 = 0;
+int randomNumber2 = 0;
+int randomNumber3 = 0;
+int randomNumber4 = 0;
+
+
+// void batteryPercentage(){
+//     if (cmPerSecond > 65*0.7){
+//         batteryOver70 = true;
+//     }
+//     else{
+//         batteryOver70 = false;
+//     }
+// }
+
+
+void setup() 
+{
     display.init();
     display.clear();
+    display.gotoXY(2,4);
     display.setLayout21x8();
+    display.print("Trykk A for start");
+    display.gotoXY(2,5);
+    display.print("Trykk B for reset");
+    waitForAorB();
+    lineSensors.initFiveSensors();
+    encoder.init();
+    display.clear();
 }
 
-void displayValues() {
+void waitForAorB(){
+    while(true){
+        if (buttonA.isPressed()){
+            break;
+        }
+        else if (buttonB.isPressed()){
+            EEPROM.write(batteryHealthAddress, 100);
+            EEPROM.write(batteryLevelAddress, 100);
+            break;
+        }
+    }
+}
+
+void displayValues() 
+{
     display.gotoXY(0,0);
-    display.print("Speed:");
+    display.print("Battery Health:");
     display.gotoXY(0,1);
-    display.print(centiPerSecond);
-    display.print("cm/s");
-    display.gotoXY(0, 6);
-    display.print("Distance:");
-    display.gotoXY(0,7);
-    display.print(rotationCount * 3.75* PI/100); // 3.75 er dm til hjulet
-    display.print("m");
-    display.gotoXY(16,0);
-    display.print("Money");
-    display.gotoXY(11,1);
-    display.print("Used:");
-    display.gotoXY(17,1);
-    display.print("4kr");
-    display.gotoXY(9,2);
-    display.print("Earned:");
-    display.gotoXY(17,2);
-    display.print("2kr");
-    display.gotoXY(10,3);
-    display.print("Total:");
-    display.gotoXY(17,3);
-    display.print("7kr");
-    display.gotoXY(16,6);
-    display.print("Time:");
-    display.gotoXY(16,7);
-    display.print(timePassedForValues);
-    display.print("sec");
-
-
-}
-
-void displayAverageDistance(){
-    display.gotoXY(5,1);
-    display.print("Average for");
-    display.gotoXY(3,2);
-    display.print("last 60 seconds: ");
-    display.gotoXY(9,4);
-    display.print((rotationCount * 3.75* PI/100) / 60);
-    display.gotoXY(16,6);
-    display.print("Time: ");
-    display.gotoXY(16,7);
-    display.print(timePassedForAverage);
-    display.print("sec");
+    display.print(batteryHealth);
 }
 
 void loop() {
-    int holderEncoderLeft = encoder.getCountsAndResetLeft();
-    int holderEncoderRight = encoder.getCountsAndResetRight();
-    leftEncoderCount += (abs(holderEncoderLeft) + abs(holderEncoderRight)) / 2;
-    rotationCount = calculateRotation();
+    
+    batteryHealth = EEPROM.read(batteryHealthAddress);
+    Serial.println(lineSensors.readLine(lineSensorValues));
+    
+    // Random tidspunkt i ny og ned
+    randomNumber1 = random(0, 10000); // Change to 100000
+    randomNumber2 = random(0, 10000);
+    randomNumber3 = random(0, 10000);
+    randomNumber4 = random(0, 10000);
 
-    unsigned long currentMillis = millis();
+    //Serial.print("Bool: ");
+    //Serial.println(hasHealthChanged);
+    displayValues();
+    //Serial.println(batteryHealth);
 
-    if (currentMillis - previousMillis >= 100) {
-        previousMillis = currentMillis;
-        rotationsPerSecond = calculateRotationPerSecond() * 10;
-        previousRotationCount = rotationCount;
-    }
-
-    centiPerSecond = rotationsPerSecond * PI * 3.75; // RPS * omkrets
-
-    unsigned long currentMillis2 = millis();
-
-    timePassedForValues = (currentMillis - previousMillis2) / 1000;
-
-    // Viser values i 60 sekunder
-    if (showingValues == true){
-        Serial.print("Viser vanlige verdier i 10 sek: ");
-        Serial.println(currentMillis - previousMillis2);
-        displayValues();
-    }
-
-    // Clearer Display for å vise average, etter 60 sek
-    if (showingValues == true && currentMillis - previousMillis2 >= 60000){
+    unsigned long start = millis();
+    if ((randomNumber1 == randomNumber2 == randomNumber3 == randomNumber4) && hasHealthChanged == false){
+        // Reduce battery 50%
+        batteryHealth = batteryHealth / 2;
+        EEPROM.update(batteryHealthAddress,batteryHealth);
         display.clear();
-        showingValues = false;
-        previousMillis2 = currentMillis;
+        lastHealthChange = start;
+        start = start - previousNumber;
+        previousNumber = start;
+        hasHealthChanged = true;
     }
 
-    if (showingValues == false){
-        // Viser Average i 3 sekunder
-        Serial.print("Viser Average i neste 3 sek: ");
-        displayAverageDistance();
-        Serial.println(currentMillis - previousMillis2);
-        timePassedForAverage = (currentMillis - previousMillis2) / 1000;
-
-        // Clearer Display for neste iterasjon, etter 3 sek
-        if (showingValues == false && currentMillis - previousMillis2 >= 3000){
-            display.clear();
-            showingValues = true;
-            previousMillis2 = currentMillis;
-        }
+    if (millis() - lastHealthChange >= 240000 && hasHealthChanged == true){
+        hasHealthChanged = false;
+        previousWaitTimeForNext = waitTimeForNext;
     }
+
+
+
+    // Serial.println(healthChangeMillis);
+    // EEPROM.update(batteryHealthAddress, EEPROM.read(batteryHealthAddress) / 2);
 }
