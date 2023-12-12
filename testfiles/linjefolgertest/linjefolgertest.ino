@@ -6,6 +6,8 @@
 #include <Wire.h>
 #include <Zumo32U4.h>
 
+
+Zumo32U4IRPulses iRPulse;
 Zumo32U4Buzzer buzzer;
 Zumo32U4LineSensors lineSensors;
 Zumo32U4LineSensors deadEndSensors;
@@ -68,7 +70,6 @@ void setup()
     delay(2000);
     display.clear();
 }
-
 
 void loop()
 {
