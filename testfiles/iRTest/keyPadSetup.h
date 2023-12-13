@@ -3,11 +3,19 @@
 
 struct KeyPadSetup
 {
+    // Allows the entering of passwords if this variable is true
     bool enterPasswordStart = false;
+
+    // Allows comparing of passwordHolder and correct password if true
     bool commitPassword = false;
+
+    // variable to update if the door is locked/unlocked
     bool unlockDoor = false;
+
+    // Variable to hold the password input
     String passwordHolder;
 
+    // Serial print the pressed key
     void printKeyPress(char keyPress)
     {
         if (keyPress)
@@ -16,7 +24,8 @@ struct KeyPadSetup
             Serial.println(keyPress);
         }
     }
-
+    // Allows input to the passwordHolder variable
+    // Changes the enterPasswordStart variable to true and commitPassword to false
     void enterPassword(char keyPress)
     {
         if (keyPress == '*')
@@ -25,7 +34,8 @@ struct KeyPadSetup
             commitPassword = false;
         }
     }
-
+    // Indicates that the password has been entered and is ready to compare
+    // Changes the enterPasswordStart variable to false and commitPassword to true
     void passwordCommit(char keyPress)
     {
         if (keyPress == '#')
@@ -34,7 +44,8 @@ struct KeyPadSetup
             enterPasswordStart = false;
         }
     }
-
+    // Updates the passwordHolder variable if enterPasswordStart variable is true
+    // Makes sure the password is a numerical (ONLY WORKS WITH NUMERICALS)
     void storePasswordInput(char keyPress)
     {
         if (enterPasswordStart == true)
@@ -45,7 +56,11 @@ struct KeyPadSetup
             }
         }
     }
-    void passwordCommit()
+
+    // Compares passwordHolder variable to the correct password
+    // Unlocks the door if true alerts the owner of the door if password is wrong
+    // commitPassword MUST be true to run
+    void passwordCompare()
     {
         if (commitPassword == true)
         {
@@ -63,12 +78,6 @@ struct KeyPadSetup
             passwordHolder = '\0';
             commitPassword = false;
         }
-    }
-
-    void keyPadSerialPrint()
-    {
-        Serial.print("Keypad Inputs: ");
-        Serial.println(passwordHolder);
     }
 };
 
