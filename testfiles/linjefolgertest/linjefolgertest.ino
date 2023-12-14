@@ -20,6 +20,9 @@ bool hasRightCrossBeenDetected = false;
 bool hasLeftCrossBeenDetected = false;
 bool hasCrossBeenDetected = false;
 bool deadEnd = false;
+bool holeInRoad = false;
+bool lineHasBeenDetected = false;
+bool waitingForTime = false;
 
 unsigned long timeForZeroValues = 0;
 unsigned long previousTimeForZeroValues = 0;
@@ -93,7 +96,7 @@ void loop(){
 
     if(lineSensorValues[4] > 900 && lineSensorValues[0] < 300 && hasRightCrossBeenDetected == false){
         display.clear();
-        display.print("RIGHT CROSS");
+        display.print("RIGHT TURN");
         hasLeftCrossBeenDetected = false;
         hasCrossBeenDetected = false;
         hasRightCrossBeenDetected = true;
@@ -113,22 +116,61 @@ void loop(){
         hasLeftCrossBeenDetected = false;
         hasCrossBeenDetected = true;
         hasRightCrossBeenDetected = false;
+
+        // find right path
     }
 
-    if(lineSensorValues == 0 && (hasRightCrossBeenDetected == true || hasLeftCrossBeenDetected == true || hasCrossBeenDetected == true)){
-        previousTimeForZeroValues = millis();
-        Serial.println("NEGER");
-        if(millis() - previousTimeForZeroValues >= 1000){
-            deadEnd = true;
-            Serial.println("DeadEnd Niggaballs");
-            previousTimeForZeroValues = timeForZeroValues;
+    // If line is gone, and cross has been detected, drive straight for 1 second.
+    if((lineSensors.readLine(lineSensorValues) == 0 || lineSensors.readLine(lineSensorValues) == 4000) && holeInRoad == false && (hasRightCrossBeenDetected == true || hasLeftCrossBeenDetected == true || hasCrossBeenDetected == true)){
+
+        holeInRoad = true;
+        Serial.print("Hole in road: ");
+        Serial.println(holeInRoad);
+        Serial.print("Previous time for zero values: ");
+        Serial.println(previousTimeForZeroValues);
+        // drive straight
+
+
+        if (holeInRoad == true){
+            previousTimeForZeroValues = millis(); 
+            Serial.println("BALLS IN MY MOUTH");
+            Serial.print("Previous time for zero values 2: ");
+            Serial.println(previousTimeForZeroValues);
+            Serial.print("Millis count: ");
+            Serial.println(millis());
+            // motors.setSpeeds(200,200);
+            if(millis() - previousTimeForZeroValues >= 1000){
+                Serial.println("DeadEnd Niggaballs");
+                // Drive straight
+                // motors.setSpeeds(200,200);
+                // previousTimeForZeroValues = millis();
+                deadEnd = true;
+            }
         }
+
+        // if no new line is detected, and 1 second has passed, reverse.
         if (deadEnd == true){
             Serial.println("BALLESTEIN");
+            // motors.setSpeeds(-200,-200);
             // Reverse
+            if(lineSensors.readLine(lineSensorValues) > 0 && lineSensors.readLine(lineSensorValues) < 4000 && deadEnd == true){
+                // Turn around till on cross line
+                Serial.println("balls");
+                //lineHasBeenDetected = true;
+                if(lineHasBeenDetected == true){
+                    Serial.println("CHOING CHONG");
+                    deadEnd = false;
+                    holeInRoad = false;
+                    hasRightCrossBeenDetected = false;
+                    hasLeftCrossBeenDetected = false;
+                    hasCrossBeenDetected = false;
+                    // continue following line
+                }
+            }
         }
     }
-
+    // Serial.println("previousTimeForZeroValues: ");
+    // Serial.println(previousTimeForZeroValues);
 
 
     // Linjefølger del
