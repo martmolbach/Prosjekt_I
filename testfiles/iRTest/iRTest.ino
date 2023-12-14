@@ -169,6 +169,7 @@ void loop()
   keyPadSetup.passwordCommit(keyPress);     // Commit to comparing passwordHolder to correct password
   keyPadSetup.passwordCompare();            // Compare passwordHolder to correct password (Open Door / Wrong password)
 
+
   ////////////////////////////////////////////
   ////////////////////////////////////////////
   //////////////DISTANCE SENSOR///////////////
@@ -176,7 +177,7 @@ void loop()
   ////////////////////////////////////////////
 
   // Changes the pulseState variable from HIGH to LOW every 15 micro seconds
-  if (timer3.isFinishedMicros(15))
+  /*if (timer3.isFinishedMicros(15))
   {
     timer3.resetMicros(); // reset the timer
     pulseState = !pulseState;
@@ -184,7 +185,7 @@ void loop()
   }
   distanceSensor.calculateDuration(); // Calculates the duration of the sound wave
   distanceSensor.calculateDistance(); // calculates the distance to the object
-
+*/
   ////////////////////////////////////////////
   ////////////////////////////////////////////
   ////////////SERIAL PRINT CHANGER////////////

@@ -17,11 +17,16 @@ Timer timer1;
 Timer timer2;
 Timer timer3;
 DisplayState currentDisplayState = Normal;
+Zumo32U4ButtonA buttonA;
 
 void setup()
 {
     encoder.init();
     displaySettings.setupDisplay(display);
+    if (buttonA.waitForRelease())
+    {
+        
+    }
 }
 
 void loop()

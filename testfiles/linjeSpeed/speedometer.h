@@ -4,7 +4,6 @@
 
 struct Speedometer
 {
-
     const float countPerRotation = 75.81 * 12;
     const float wheelDiameter = 3.75;
     const float maxSpeed = 64;

@@ -9,7 +9,7 @@ struct Timer
     //Variable to store the previous microseconds
     unsigned long previousMicros = 0;
 
-    // Reset previousMillis 
+    // Reset previousMillis
     void reset()
     {
         previousMillis = millis();
