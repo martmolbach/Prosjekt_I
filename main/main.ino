@@ -101,48 +101,50 @@ int randomTaxiDistance = 0; // Random distance the taxi travels before it stops 
 // Taxi end //
 
 // GYRO //
-const int stopDuration = 2000; // Duration the car stops 
-int forwardCounter = 0;
-float gyroOffsetZ;
-float angle = 0;
-const float wheelDiameter = 3.75;
-unsigned long previousCurrentTime2 = 0;
-unsigned long previousCurrentTime = 0;
+const int stopDuration = 2000;  // Duration the car stops 
+int forwardCounter = 0;         // Counter for how many times the car has moved forward
+float gyroOffsetZ;              // Gyro offset
+float angle = 0;                // Angle of gyro
+const float wheelDiameter = 3.75;       // Diameter of wheel
+unsigned long previousCurrentTime2 = 0; // Variable to store previous time
+unsigned long previousCurrentTime = 0;  // Variable to store previous time
 // GYRO END //
 
-State currentState = moveForward;
-drivingState drivingStateVar = LINEFOLLOWER_NORMAL;
-batteryState batteryStateVar = NORMAL_BATTERY_STATE;
-randomState randomStateVar = NORMAL_RANDOM_STATE;
-underTenPercentAlert underTenPercentAlertVar = NORMAL_UNDER_TEN_PERCENT_ALERT;
-valuesShown valuesShownVar = SHOWING_VALUES;
-zeroPercentStage zeroPercentStageVar = ZERO_PERCENT_NORMAL;
+State currentState = moveForward;   // Starting state for square driving
+drivingState drivingStateVar = LINEFOLLOWER_NORMAL; // Starting state for driving
+batteryState batteryStateVar = NORMAL_BATTERY_STATE; // Starting state for battery
+randomState randomStateVar = NORMAL_RANDOM_STATE; // Starting state for random
+underTenPercentAlert underTenPercentAlertVar = NORMAL_UNDER_TEN_PERCENT_ALERT; // Starting state for under ten percent alert
+valuesShown valuesShownVar = SHOWING_VALUES; // Starting state for values shown
+zeroPercentStage zeroPercentStageVar = ZERO_PERCENT_NORMAL; // Starting state for zero percent stage
 
 // SETUP //
 void setup()
 {
-    display.init();
-    display.clear();
+    // Welcome sequence //
+    display.init(); // Initialize display
+    display.clear(); // Clear display
     display.print("Welcome");
     buzzer.play(">g32>>c32");
     delay(1000);
 
-    Wire.begin();
-    imu.init();
-    imu.enableDefault();
-    imu.configureForBalancing();
-    encoder.init();
+
+    Wire.begin(); // Initialize I2C
+    imu.init();   // Initialize IMU
+    imu.enableDefault(); // Enable default IMU
+    imu.configureForBalancing(); // Configure IMU for balancing
+    encoder.init(); // Initialize encoder
 
     display.clear();
-    display.setLayout21x8();
-    waitForAorB();
+    display.setLayout21x8(); // Set layout for display
+    waitForAorB(); // Menu function
 
-    lineSensors.initFiveSensors();
+    lineSensors.initFiveSensors(); // Initialize line sensors
     display.clear();
     display.gotoXY(4, 3);
     display.print("Calibrating...");
-    unsigned long startTime = millis();
-    calibrateSensors(startTime);
+    unsigned long startTime = millis(); // Variable to store start time for calibration
+    calibrateSensors(startTime); // Calibrate line sensors
     display.clear();
     display.gotoXY(5, 3);
     display.print("Calibration");
@@ -151,20 +153,22 @@ void setup()
     display.clear();
 
     encoder.init();
-    randomSeed(millis());
-    randomTaxiPercentage = random(30, 90);
-    randomTaxiDistance = random(1, 3);
+    randomSeed(millis()); // Random seed for random numbers
+    randomTaxiPercentage = random(30, 90); // Random percentage for when the taxi starts (used with battery level)
+    randomTaxiDistance = random(1, 3);   // Random distance the taxi travels before it stops and sets of passenger
     delay(2000);
-    setupDoneTimer = millis();
+    setupDoneTimer = millis();  // Timer for when setup is done
 }
 // SETUP DONE //
 
+// calculate rotation function //
 float calculateRotation()
 {
-    float rotationCounter = leftEncoderCount / countPerRotation;
+    float rotationCounter = leftEncoderCount / countPerRotation; 
     return rotationCounter;
 }
 
+// highest speed function //
 float updateHighestSpeed()
 {
     if (cmPerSecond > highestSpeed)
@@ -173,11 +177,13 @@ float updateHighestSpeed()
     }
 }
 
+// calculate rotation per second function //
 float calculateRotationPerSecond()
 {
     return rotationCount - previousRotationCount;
 }
 
+// function for if random numbers are the same //
 bool randomOccured()
 {
     randomNumber1 = random(0, 10000);
@@ -187,79 +193,83 @@ bool randomOccured()
     return (randomNumber1 == randomNumber2 == randomNumber3 == randomNumber4);
 }
 
+// function for distance //
 bool countDistance(float targetDistance)
 {
     static float totalDistance = 0;
 
-    int leftEncoder = encoder.getCountsLeft();
-    int rightEncoder = encoder.getCountsRight();
-    float encoderCount = (abs(leftEncoder) + abs(rightEncoder)) / 2.0;
-    float rotationCounter = encoderCount / countPerRotation;
-    float currentDistance = rotationCounter * (PI * wheelDiameter);
+    int leftEncoder = encoder.getCountsLeft(); // Encoder count on left wheel
+    int rightEncoder = encoder.getCountsRight(); // Encoder count on right wheel
+    float encoderCount = (abs(leftEncoder) + abs(rightEncoder)) / 2.0; // Encoder count on both wheels
+    float rotationCounter = encoderCount / countPerRotation; // Rotation count on both wheels
+    float currentDistance = rotationCounter * (PI * wheelDiameter); // Distance traveled
 
     totalDistance += currentDistance;
 
     if (totalDistance >= targetDistance)
     {
         totalDistance = 0;
-        return true;
+        return true; // Return true if distance is reached
     }
 
-    return false;
+    return false; // Return false if distance is not reached
 }
 
+// function for calibration of line sensors //
 void calibrateSensors(unsigned long startTime)
 {
-    while (millis() - startTime < calibrationTime)
+    while (millis() - startTime < calibrationTime) // Calibrate for 3.5 seconds
     {
-        lineSensors.calibrate();
-        motors.setSpeeds(200, -200);
+        lineSensors.calibrate(); // Calibrate line sensors
+        motors.setSpeeds(200, -200); // Rotate
     }
-    motors.setSpeeds(0, 0);
+    motors.setSpeeds(0, 0); // Stop
 }
 
+// Function for driving in square pattern //
 void squareDriving()
 {
 
-    unsigned long currentTime = millis();
-    float targetDistance = 0.4;
+    unsigned long currentTime = millis(); // Variable to store current time
+    float targetDistance = 0.4; // Target distance for square driving
 
+    // switch case for square driving //
     switch (currentState)
     {
-    case moveForward:
+    case moveForward: // Move forward
         motors.setSpeeds(200, 200);
-        if (countDistance(targetDistance))
+        if (countDistance(targetDistance)) // If distance is reached
         {
-            currentState = stopForward;
+            currentState = stopForward; // Stop
         }
         break;
 
-    case stopForward:
-        angle = 0;
-        motors.setSpeeds(0, 0);
-        if (currentTime - previousCurrentTime2 >= stopDuration)
+    case stopForward: // Stop
+        angle = 0; // Reset angle
+        motors.setSpeeds(0, 0); 
+        if (currentTime - previousCurrentTime2 >= stopDuration) 
         {
             previousCurrentTime2 = currentTime;
-            currentState = turnRight;
+            currentState = turnRight; // Turn right
         }
         break;
 
-    case turnRight:
-        motors.setSpeeds(-100, 100);
-        if (angle >= 90)
+    case turnRight: // Turn right
+        motors.setSpeeds(-100, 100); 
+        if (angle >= 90) // if angle is 90 degrees
         {
-            currentState = stopTurn;
-            angle = 0;
+            currentState = stopTurn; // Stop
+            angle = 0; // Reset angle
         }
         break;
 
-    case stopTurn:
-        motors.setSpeeds(0, 0);
+    case stopTurn: // Stop
+        motors.setSpeeds(0, 0); 
         if (currentTime - previousCurrentTime2 >= stopDuration)
         {
-            forwardCounter = forwardCounter + 1;
-            previousCurrentTime2 = currentTime;
-            currentState = moveForward;
+            forwardCounter = forwardCounter + 1; // Add one to forward counter
+            previousCurrentTime2 = currentTime; 
+            currentState = moveForward; // Move forward
         }
         break;
 
@@ -268,21 +278,24 @@ void squareDriving()
     }
 }
 
+// Function for driving in circle pattern //
 void sirkelModus()
 {
-    motors.setSpeeds(100, 200);
+    motors.setSpeeds(100, 200); // Drive in circle
 }
 
+// Function for updating of gyro angle //
 void updateAngleGyro()
 {
-    static uint16_t lastUpdate = 0;
-    uint16_t m = micros();
-    uint16_t dt = m - lastUpdate;
-    lastUpdate = m;
-    imu.readGyro();
-    angle += ((float)imu.g.z - gyroOffsetZ) * 70 * dt / 1000000000;
+    static uint16_t lastUpdate = 0; // Variable to store last update
+    uint16_t m = micros(); // Variable to store micros
+    uint16_t dt = m - lastUpdate; // Variable to store difference between micros and last update
+    lastUpdate = m;  // last update is equal to micros
+    imu.readGyro(); // Read gyro
+    angle += ((float)imu.g.z - gyroOffsetZ) * 70 * dt / 1000000000; // Update angle
 }
 
+// Function for printing of gyro angle //
 void printAngles()
 {
     display.gotoXY(0, 5);
@@ -290,75 +303,78 @@ void printAngles()
     display.print(F("  "));
 }
 
+// Function for driving forwards and backwards //
 void forwardsBackwards()
 {
-    float targetDistance = 50;
-    float turnDistance = 30;
-    unsigned long currentTime = millis();
-    int distance = 1;
+    float targetDistance = 50;  // Target distance for forwards and backwards
+    float turnDistance = 30;   // Distance for turning
+    unsigned long currentTime = millis(); // Variable to store current time
+    int distance = 1; // Distance for forwards and backwards
 
+    // switch case for forwards and backwards //
     switch (currentState)
     {
 
-    case moveForward:
+    case moveForward: // Move forward
         motors.setSpeeds(200, 200);
-        if (countDistance(targetDistance))
+        if (countDistance(targetDistance)) 
         {
-            currentState = stopForward;
+            currentState = stopForward; // Stop
         }
         break;
 
-    case stopForward:
+    case stopForward: // Stop
         motors.setSpeeds(0, 0);
         if (currentTime - previousCurrentTime >= stopDuration)
         {
-            previousCurrentTime = currentTime;
-            currentState = turnAround;
-            angle = 0;
+            previousCurrentTime = currentTime; 
+            currentState = turnAround; // Turn around
+            angle = 0; // Reset angle
         }
         break;
 
-    case turnAround:
+    case turnAround: // Turn around
         motors.setSpeeds(-100, 100);
         if (angle >= 180)
         {
             angle = 0;
-            currentState = stopTurn;
+            currentState = stopTurn; // Stop
         }
         break;
 
-    case stopTurn:
+    case stopTurn: // Stop
         motors.setSpeeds(0, 0);
         if (currentTime - previousCurrentTime >= stopDuration)
         {
             previousCurrentTime = currentTime;
-            currentState = moveForward2;
+            currentState = moveForward2; // Move forward
         }
         break;
 
-    case moveForward2:
+    case moveForward2: // Move forward
         motors.setSpeeds(200, 200);
         if (countDistance(targetDistance))
-            currentState = stop;
+            currentState = stop; // Stop
         break;
 
-    case stop:
+    case stop: // Stop
         motors.setSpeeds(0, 0);
         if (currentTime - previousCurrentTime >= stopDuration)
         {
             previousCurrentTime = currentTime;
-            currentState = finish;
+            currentState = finish; // Finish
         }
         break;
 
-    case finish:
-        break;
+    case finish: // Finish 
+        break; // Break
 
     default:
         break;
     }
 }
 
+// Function for menu //
 void waitForAorB()
 {
     while (true)
@@ -369,42 +385,44 @@ void waitForAorB()
         display.print("Press B for reset");
         display.gotoXY(2, 5);
         display.print("Press C for patterns");
-        if (buttonA.getSingleDebouncedRelease())
+        if (buttonA.getSingleDebouncedRelease()) // button A pressed
         {
             display.clear();
-            break;
+            break; // Start calibration
         }
-        else if (buttonB.getSingleDebouncedRelease())
+        else if (buttonB.getSingleDebouncedRelease()) // Button B pressed
         {
-            EEPROM.write(batteryHealthAddress, 100);
-            EEPROM.write(batteryLevelAddress, 100);
-            EEPROM.write(moneyAddress, 70);
+            EEPROM.write(batteryHealthAddress, 100); // Reset battery health to 100
+            EEPROM.write(batteryLevelAddress, 100); // Reset battery level to 100
+            EEPROM.write(moneyAddress, 70); // Reset money to 70
             display.clear();
-            break;
+            break; // start calibration
         }
-        else if (buttonC.getSingleDebouncedRelease())
+        else if (buttonC.getSingleDebouncedRelease()) // Button C pressed. Driving patterns
         {
             display.clear();
             display.print(F("Gyroscope calibrating"));
             delay(500);
 
+            // calibrate gyro //
             for (uint16_t i = 0; i < 1024; i++)
             {
-                while (!imu.gyroDataReady())
+                while (!imu.gyroDataReady()) // wait for data ready
                 {
                 }
-                imu.readGyro();
-                gyroOffsetZ += imu.g.z;
+                imu.readGyro(); // read gyro
+                gyroOffsetZ += imu.g.z; // add gyro offset
             }
 
-            gyroOffsetZ /= 1024;
+            gyroOffsetZ /= 1024; // Divide gyro offset by 1024
             display.clear();
             display.print("Press A to continue");
-            while (!buttonA.getSingleDebouncedRelease())
+        
+            while (!buttonA.getSingleDebouncedRelease()) // wait for button A press
             {
-                updateAngleGyro();
-                static uint8_t lastCorrectionTime = 0;
-                uint8_t m = millis();
+                updateAngleGyro(); // update angle function called
+                static uint8_t lastCorrectionTime = 0; // Variable to store last correction time
+                uint8_t m = millis(); // Variable to store millis
                 if ((uint8_t)(m - lastCorrectionTime) >= 20)
                 {
                     lastCorrectionTime = m;
@@ -412,7 +430,7 @@ void waitForAorB()
                 }
             }
             delay(500);
-            while (true)
+            while (true) // while loop for driving pattern options
             {
                 display.gotoXY(2, 0);
                 display.print("Press A for line");
@@ -422,36 +440,38 @@ void waitForAorB()
                 display.print("Press C for circle");
                 display.gotoXY(2, 6);
                 display.print("Press A+B for exit");
-                if (buttonA.getSingleDebouncedRelease())
+                if (buttonA.getSingleDebouncedRelease()) // button A pressed
                 {
                     display.clear();
                     while (true)
                     {
-                        forwardsBackwards();
-                        static byte lastCorrectionTime = 0;
-                        byte m = millis();
-                        if ((byte)(m - lastCorrectionTime) >= 20)
+                        forwardsBackwards(); // forwards and backwards function called
+                        static byte lastCorrectionTime = 0; // Variable to store last correction time
+                        byte m = millis(); // Variable to store millis
+                        if ((byte)(m - lastCorrectionTime) >= 20) // if time passed is more than 20
                         {
-                            lastCorrectionTime = m;
-                            printAngles();
+                            lastCorrectionTime = m; // last correction time is equal to millis
+                            printAngles(); // print angles function called
                         }
-                        if (currentState == finish)
+                        if (currentState == finish) // if current state is finish, break out of while loop
                         {
-                            currentState = moveForward;
+                            currentState = moveForward; // set current state to forward before leaving while loop
                             break;
                         }
-                        int holderEncoderLeft = encoder.getCountsAndResetLeft();
+                        int holderEncoderLeft = encoder.getCountsAndResetLeft(); 
                         int holderEncoderRight = encoder.getCountsAndResetRight();
                         updateAngleGyro();
                     }
                     display.clear();
                 }
-                else if (buttonB.getSingleDebouncedRelease())
+                else if (buttonB.getSingleDebouncedRelease()) // button B pressed
                 {
                     display.clear();
                     while (true)
                     {
-                        squareDriving();
+                        squareDriving(); // square driving function called
+
+                        // same as button A //
                         updateAngleGyro();
                         static byte lastCorrectionTime = 0;
                         byte m = millis();
@@ -468,12 +488,12 @@ void waitForAorB()
                         int holderEncoderRight = encoder.getCountsAndResetRight();
                     }
                 }
-                else if (buttonC.getSingleDebouncedRelease())
+                else if (buttonC.getSingleDebouncedRelease()) // button C pressed
                 {
                     display.clear();
                     while (true)
                     {
-                        sirkelModus();
+                        sirkelModus(); // circle pattern function called
                         static byte lastCorrectionTime = 0;
                         byte m = millis();
                         if ((byte)(m - lastCorrectionTime) >= 20)
@@ -481,7 +501,7 @@ void waitForAorB()
                             lastCorrectionTime = m;
                             printAngles();
                         }
-                        if (angle >= 360)
+                        if (angle >= 360) // if full circle complete, break out of while loop
                         {
                             angle = 0;
                             motors.setSpeeds(0, 0);
@@ -493,17 +513,18 @@ void waitForAorB()
                     }
                     display.clear();
                 }
-                else if ((buttonA.isPressed()) && (buttonB.isPressed()))
+                else if ((buttonA.isPressed()) && (buttonB.isPressed())) // if button A and button B pressed
                 {
                     display.clear();
                     delay(1000);
-                    break;
+                    break; // break out of while loop
                 }
             }
         }
     }
 }
 
+// Function for charging station //
 void chargingOptions()
 {
     while (true)
@@ -514,22 +535,25 @@ void chargingOptions()
         display.print("Press B for service");
         display.gotoXY(2, 5);
         display.print("Press C for new battery");
-        if (buttonA.getSingleDebouncedRelease())
+        if (buttonA.getSingleDebouncedRelease()) // button A pressed
         {
             display.clear();
-            while ((batteryLevel < 100) && (money > 0) && (batteryHasCharged == false))
+            // if battery level under 100 and money over 0. Charge until battery full or money is used up
+            while ((batteryLevel < 100) && (money > 0)) 
             {
                 display.gotoXY(2, 3);
-                batteryLevel = batteryLevel + 1;
+                batteryLevel = batteryLevel + 1; // add one to battery level
 
-                totalMoneySpent = totalMoneySpent + 1;
-                totalMoneySpentLastTransaction = totalMoneySpentLastTransaction + 1;
-                money = money - 1;
+                totalMoneySpent = totalMoneySpent + 1; // add one to total money spent
+                totalMoneySpentLastTransaction = totalMoneySpentLastTransaction + 1; // add one to total money spent last transaction
+                money = money - 1; // subtract one from money
+                batteryHasCharged = true; // set battery has charged to true
             }
+
             if (batteryHasCharged == true)
             {
-                batteryHealth = batteryHealth - 10;
-                batteryHasCharged = false;
+                batteryHealth = batteryHealth - 10; // subtract 10 from battery health
+                batteryHasCharged = false; // set battery has charged to false
             }
 
             if ((batteryLevel >= 100))
@@ -539,7 +563,8 @@ void chargingOptions()
                 delay(1000);
                 display.clear();
             }
-            else if ((money <= 0))
+
+            else if ((money == 0))
             {
                 display.gotoXY(2, 3);
                 display.print("Not enough money");
@@ -548,9 +573,10 @@ void chargingOptions()
             }
             display.clear();
         }
-        else if (buttonB.getSingleDebouncedRelease())
+        else if (buttonB.getSingleDebouncedRelease()) // button B pressed
         {
             display.clear();
+
             if (batteryHealth < 20)
             {
                 display.gotoXY(2, 1);
@@ -560,15 +586,17 @@ void chargingOptions()
                 delay(1000);
                 display.clear();
             }
+            // if batteryhealth inside threshold and enough money, service accepted
             if ((batteryHealth >= 20) && (batteryHealth <= 30) && (money >= 20))
             {
-                batteryHealth = batteryHealth + 70;
-                money = money - 20;
+                batteryHealth = batteryHealth + 70; // add 70 to battery health
+                money = money - 20; // subtract 20 from money
 
-                totalMoneySpent = totalMoneySpent + 20;
-                totalMoneySpentLastTransaction = totalMoneySpentLastTransaction + 20;
+                totalMoneySpent = totalMoneySpent + 20; // add 20 to total money spent 
+                totalMoneySpentLastTransaction = totalMoneySpentLastTransaction + 20; // add 20 to total money spent last transaction
                 display.clear();
             }
+
             else
             {
                 display.gotoXY(2, 1);
@@ -578,20 +606,22 @@ void chargingOptions()
             }
             display.clear();
         }
-        else if (buttonC.getSingleDebouncedRelease())
+
+        else if (buttonC.getSingleDebouncedRelease()) // button C pressed
         {
             display.clear();
+            // if money over 100 and battery health under 100, new battery accepted
             if ((money >= 100) && (batteryHealth < 100))
             {
-                batteryHealth = 100;
-                batteryLevel = 100;
-                money = money - 100;
+                batteryHealth = 100; // set battery health to 100
+                batteryLevel = 100; // set battery level to 100
+                money = money - 100; // subtract 100 from money
 
-                totalMoneySpent = totalMoneySpent + 100;
-                totalMoneySpentLastTransaction = totalMoneySpentLastTransaction + 100;
+                totalMoneySpent = totalMoneySpent + 100; // add 100 to total money spent
+                totalMoneySpentLastTransaction = totalMoneySpentLastTransaction + 100; // add 100 to total money spent last transaction
                 display.clear();
             }
-            else if ((money < 100))
+            else if ((money < 100)) 
             {
                 display.gotoXY(2, 1);
                 display.print("Not enough money");
@@ -606,21 +636,22 @@ void chargingOptions()
                 display.clear();
             }
         }
-        else if (buttonA.isPressed() && buttonB.isPressed())
+        else if (buttonA.isPressed() && buttonB.isPressed()) // if button A and button B pressed
         {
             display.clear();
             delay(1000);
-            break;
+            break; // break out of while loop
         }
     }
 }
 
+// Function for displaying average distance //
 void displayAverageDistance()
 {
     display.gotoXY(0, 0);
     display.print("Average speed:");
     display.gotoXY(0, 1);
-    display.print("KUK"); // averageSpeed
+    display.print(averageSpeed); // averageSpeed
     display.print("cm/s");
 
     display.gotoXY(0, 3);
@@ -632,16 +663,17 @@ void displayAverageDistance()
     display.gotoXY(0, 6);
     display.print("Over 70% max:");
     display.gotoXY(0, 7);
-    display.print("SECOND OVER PERCENTAGE"); // secondsOverPercentage
+    display.print(secondsOverPercentage); // secondsOverPercentage
     display.print("sec");
 
     display.gotoXY(16, 6);
     display.print("Time: ");
     display.gotoXY(16, 7);
-    display.print(timePassedForValues);
+    display.print(timePassedForValues); // time passed
     display.print("s");
 }
 
+// Function for displaying battery status //
 void displayBatteryStatus()
 {
     display.gotoXY(0, 0);
@@ -649,60 +681,62 @@ void displayBatteryStatus()
 
     display.gotoXY(0, 2);
     display.print("Level:");
-    display.print(batteryLevel);
+    display.print(batteryLevel); // batteryLevel
     display.print("%");
 
     display.gotoXY(0, 3);
     display.print("Health:");
-    display.print(batteryHealth);
+    display.print(batteryHealth); // batteryHealth 
     display.print("%");
 
     display.gotoXY(16, 6);
     display.print("Time:");
     display.gotoXY(16, 7);
-    display.print(timePassedForValues);
+    display.print(timePassedForValues); // time
     display.print("s");
 }
 
+// Function for display after charging //
 void displayAfterCharging()
 {
     display.gotoXY(0, 0);
     display.print("Battery");
     display.gotoXY(0, 2);
     display.print("Level:");
-    display.print(batteryLevel);
+    display.print(batteryLevel);  // batteryLevel
     display.print("%");
 
     display.gotoXY(0, 3);
     display.print("Health:");
-    display.print(batteryHealth);
+    display.print(batteryHealth); // batteryHealth
     display.print("%");
 
     display.gotoXY(5, 4);
     display.print("Money spent:");
     display.gotoXY(5, 5);
-    display.print(totalMoneySpentLastTransaction);
+    display.print(totalMoneySpentLastTransaction); // totalMoneySpentLastTransaction
 
     display.gotoXY(16, 6);
     display.print("Time:");
     display.gotoXY(16, 7);
-    display.print(timePassedForValues);
+    display.print(timePassedForValues); // time
     display.print("s");
 }
 
+// Function for displaying values //
 void displayValues()
 {
     display.gotoXY(0, 0);
     display.print("Speed:");
     display.gotoXY(0, 1);
-    display.print(cmPerSecond);
+    display.print(cmPerSecond); // Speed
     display.gotoXY(5, 1);
     display.print("cm/s");
 
     display.gotoXY(0, 6);
     display.print("Distance:");
     display.gotoXY(0, 7);
-    display.print(distanceTraveled);
+    display.print(distanceTraveled); // Distance 
     display.print("m");
 
     display.gotoXY(16, 0);
@@ -711,48 +745,50 @@ void displayValues()
     display.gotoXY(13, 1);
     display.print("Use:");
     display.gotoXY(17, 1);
-    display.print(totalMoneySpent);
+    display.print(totalMoneySpent); // total Money Spent
 
     display.gotoXY(12, 2);
     display.print("Earn:");
     display.gotoXY(17, 2);
-    display.print(moneyEarned);
+    display.print(moneyEarned); // money earned
 
     display.gotoXY(13, 3);
     display.print("Tot:");
     display.gotoXY(17, 3);
-    display.print(money);
+    display.print(money); // total money on account
 
     display.gotoXY(16, 6);
     display.print("Time:");
     display.gotoXY(16, 7);
-    display.print(timePassedForValues);
+    display.print(timePassedForValues); // time
     display.print("s");
 }
 
+// Function for line follower // 
 void lineFollower()
 {
 
-    int16_t position = lineSensors.readLine(lineSensorValues);
+    int16_t position = lineSensors.readLine(lineSensorValues); // Read line sensor values 
 
-    int error = position - 2000;
+    int error = position - 2000; // Calculate error
 
-    int16_t speedDifference = error / 4 + 6 * (error - lastError);
+    int16_t speedDifference = error / 4 + 6 * (error - lastError); // Calculate speed difference
 
-    lastError = error;
+    lastError = error; // Update last error
 
-    int16_t leftSpeed = maxSpeed + speedDifference;
-    int16_t rightSpeed = maxSpeed - speedDifference;
+    int16_t leftSpeed = maxSpeed + speedDifference; // Calculate left speed
+    int16_t rightSpeed = maxSpeed - speedDifference; // Calculate right speed
 
-    leftSpeed = constrain(leftSpeed, 0, maxSpeed);
-    rightSpeed = constrain(rightSpeed, 0, maxSpeed);
+    leftSpeed = constrain(leftSpeed, 0, maxSpeed); // Constrain speeds
+    rightSpeed = constrain(rightSpeed, 0, maxSpeed); // Constrain speeds
 
-    motors.setSpeeds(leftSpeed, rightSpeed);
+    motors.setSpeeds(leftSpeed, rightSpeed); // Set speeds
 }
 
+// Function for battery level under 10% alert //
 void underTenPercentAlertFunc()
 {
-    buzzer.play("!T104 L8 a.");
+    buzzer.play("!T104 L8 a."); // Play sound
     display.gotoXY(2, 0);
     display.print("Battery");
     display.gotoXY(3, 1);
@@ -764,104 +800,117 @@ void underTenPercentAlertFunc()
     ledRed(0);
     ledYellow(0);
     ledGreen(0);
-    if (millis() - underTenLightBlink >= 500)
+    if (millis() - underTenLightBlink >= 500) // Blink lights every 0.5s
     {
         ledRed(1);
         ledYellow(1);
         ledGreen(1);
         underTenLightBlink = millis();
     }
-    if (millis() - underTenPercentAlertGivenMillis >= 2000)
+    if (millis() - underTenPercentAlertGivenMillis >= 2000) // alert for 2 seconds
     {
         display.clear();
         display.setLayout21x8();
-        valuesShownVar = SHOWING_VALUES;
+        valuesShownVar = SHOWING_VALUES; 
         underTenPercentAlertVar = UNDER_TEN_PERCENT_ALERT_GIVEN;
     }
 }
 
+// Function for battery level under 5% alert //
 void underFivePercentAlertFunc()
 {
     display.clear();
-    buzzer.playNote(NOTE_A(4), 1000, 15);
-    motors.setSpeeds(0, 0);
-    delay(1000);
-    buzzer.stopPlaying();
-    delay(500);
-    buzzer.playNote(NOTE_A(4), 1000, 15);
-    delay(1000);
-    previousBatteryAlert = millis();
+    buzzer.playNote(NOTE_A(4), 1000, 15); // Play sound
+    motors.setSpeeds(0, 0); // Stop
+    delay(1000); // delay to simulate low battery bugs
+    buzzer.stopPlaying(); // Stop playing sound
+    delay(500); // 0.5s delay
+    buzzer.playNote(NOTE_A(4), 1000, 15); // Play sound again
+    delay(1000); 
+    previousBatteryAlert = millis(); // previous battery alert time
 }
 
+// function for random batteryhealth change //
 void randomEvent()
 {
     unsigned long start = millis();
     if (randomOccured() && randomStateVar == NORMAL_RANDOM_STATE)
     {
-        batteryHealth = batteryHealth / 2;
-        EEPROM.update(batteryHealthAddress, batteryHealth);
+        batteryHealth = batteryHealth / 2; // divide battery health by 2
+        EEPROM.update(batteryHealthAddress, batteryHealth); // update eeprom
         display.clear();
-        lastHealthChange = start;
+        lastHealthChange = start; 
         start = start - previousNumber;
         previousNumber = start;
         randomStateVar = HEALTH_HAS_CHANGED;
     }
 
-    if (millis() - lastHealthChange >= 240000 && randomStateVar == HEALTH_HAS_CHANGED)
+    if (millis() - lastHealthChange >= 240000 && randomStateVar == HEALTH_HAS_CHANGED) // wait 4 minutes before allowing another change
     {
         randomStateVar = NORMAL_RANDOM_STATE;
         previousWaitTimeForNext = waitTimeForNext;
     }
 }
 
+// Function for speed calculation //
 void calculateSpeed()
 {
     unsigned long currentMillis = millis();
     int holderEncoderLeft = encoder.getCountsAndResetLeft();
     int holderEncoderRight = encoder.getCountsAndResetRight();
 
-    leftEncoderCount += (abs(holderEncoderLeft) + abs(holderEncoderRight)) / 2;
-    rotationCount = calculateRotation();
+    leftEncoderCount += (abs(holderEncoderLeft) + abs(holderEncoderRight)) / 2; 
+    rotationCount = calculateRotation(); // rotation count
 
     if (currentMillis - previousMillis >= 100)
     {
         previousMillis = currentMillis;
-        rotationsPerSecond = calculateRotationPerSecond() * 10;
+        rotationsPerSecond = calculateRotationPerSecond() * 10; 
         previousRotationCount = rotationCount;
     }
 
-    cmPerSecond = rotationsPerSecond * PI * wheelDiameter; // RPS * omkrets
+    cmPerSecond = rotationsPerSecond * PI * wheelDiameter; // RPS multiplied by circumference in cm
 }
 
+// Function for variable update //
 void updateEEprom()
 {
-    batteryHealth = EEPROM.read(batteryHealthAddress);
-    batteryLevel = EEPROM.read(batteryLevelAddress);
-    money = EEPROM.read(moneyAddress);
+    batteryHealth = EEPROM.read(batteryHealthAddress); // update battery health
+    batteryLevel = EEPROM.read(batteryLevelAddress); // update battery level
+    money = EEPROM.read(moneyAddress); // update money
 }
 
+// function for distance traveled //
 int calculateDistanceTraveled()
 {
-    return rotationCount * 3.75 * PI / 100;
+    return rotationCount * 3.75 * PI / 100; // Distance traveled
 }
 
+// function for updating driving state //
 void updateDrivingStateVar()
 {
+    // left turn detected //
     if ((lineSensorValues[0] > 600) && (lineSensorValues[1] > 600) && ((drivingStateVar == LINEFOLLOWER_NORMAL) || (drivingStateVar == TAXI_MODE)))
     {
-        drivingStateVar = LEFTTURN;
+        drivingStateVar = LEFTTURN; 
         distanceBeforeLeftTurn = distanceTraveled;
     }
+
+    // right turn detected //
     if ((lineSensorValues[0] < 200) && (lineSensorValues[1] > 700) && (lineSensorValues[2] > 700) && (lineSensorValues[3] > 700) && (lineSensorValues[4] < 200) && ((drivingStateVar == LINEFOLLOWER_NORMAL) || (drivingStateVar == TAXI_MODE)) && ((batteryLevel > 10) /*|| (batteryHealth > 10)*/))
     {
         distanceBeforeRightTurn = distanceTraveled;
         drivingStateVar = RIGHTTURN;
     }
+
+    // right turn detected while in need of charging //
     if ((lineSensorValues[0] < 200) && (lineSensorValues[1] > 100) && (lineSensorValues[2] > 500) && (lineSensorValues[3] < 300) && (lineSensorValues[4] > 700) && (drivingStateVar == LINEFOLLOWER_NORMAL) && ((batteryLevel < 10) /*|| (batteryHealth < 10)*/))
     {
         distanceBeforeRightTurnCharging = distanceTraveled;
         drivingStateVar = RIGHTTURN_CHARGING;
     }
+
+    // taxi mode //
     if ((batteryLevel == randomTaxiPercentage) && (drivingStateVar == LINEFOLLOWER_NORMAL))
     {
         taxiStart = millis();
@@ -870,6 +919,7 @@ void updateDrivingStateVar()
     }
 }
 
+// Function for left turn //
 void leftTurn()
 {
     motors.setSpeeds(-100, 100);
@@ -879,6 +929,7 @@ void leftTurn()
     }
 }
 
+// function for right turn //
 void rightTurn()
 {
     motors.setSpeeds(100, -100);
@@ -888,6 +939,7 @@ void rightTurn()
     }
 }
 
+// function for right turn while in need of charging //
 void rightTurnCharging()
 {
     motors.setSpeeds(100, -100);
@@ -898,6 +950,7 @@ void rightTurnCharging()
     }
 }
 
+// function for line follower while in need of charging //
 void lineFollowerCharging()
 {
     lineFollower();
@@ -907,78 +960,86 @@ void lineFollowerCharging()
     }
 }
 
+// function for charging mode //
 void chargingMode()
 {
     motors.setSpeeds(0, 0);
-    chargingOptions();
-    EEPROM.update(moneyAddress, money);
-    EEPROM.update(batteryLevelAddress, batteryLevel);
-    EEPROM.update(batteryHealthAddress, batteryHealth);
-    randomSeed(millis());
-    randomTaxiPercentage = random(30, 90);
-    randomTaxiDistance = random(1, 3);
+    chargingOptions(); // charging options function called
+    EEPROM.update(moneyAddress, money); // update money
+    EEPROM.update(batteryLevelAddress, batteryLevel); // update battery level 
+    EEPROM.update(batteryHealthAddress, batteryHealth); // update battery health
+    randomSeed(millis()); 
+    randomTaxiPercentage = random(30, 90); 
+    randomTaxiDistance = random(1, 3); 
     serviceDoneTimer = millis();
-    valuesShownVar = SHOWING_AFTER_CHARGING;
-    drivingStateVar = LINEFOLLOWER_NORMAL;
+    valuesShownVar = SHOWING_AFTER_CHARGING; // show values after charging
+    drivingStateVar = LINEFOLLOWER_NORMAL; // set driving state to line follower normal
     display.clear();
 }
 
+// function for taxi mode pickup //
 void taxiModePickup()
 {
-    valuesShownVar = TAXI_MODE;
+    valuesShownVar = TAXI_MODE; // show taxi mode on display
     motors.setSpeeds(0, 0);
-    if (millis() - taxiStart >= 2000)
+    if (millis() - taxiStart >= 2000) // wait 2s
     {
         taxiPickupDistance = distanceTraveled;
         drivingStateVar = TAXIMODE;
     }
 }
 
+// function for taxi mode //
 void taxiMode()
 {
     lineFollower();
-    if (distanceTraveled - taxiPickupDistance >= randomTaxiDistance)
+    if (distanceTraveled - taxiPickupDistance >= randomTaxiDistance) // travel the random taxi distance 
     {
         taxiStop = millis();
-        drivingStateVar = TAXIMODE_STOP;
+        drivingStateVar = TAXIMODE_STOP; // stop
     }
 }
 
+// function for taxi mode stop //
 void taxiModeStop()
 {
     motors.setSpeeds(0, 0);
-    if (millis() - taxiStop >= 2000)
+    if (millis() - taxiStop >= 2000) // wait 2s
     {
-        money = money + 100;
-        moneyEarned = moneyEarned + 100;
-        EEPROM.update(moneyAddress, money);
-        taxiPickupDistance = distanceTraveled;
+        money = money + 100; // add 100 to money
+        moneyEarned = moneyEarned + 100; // add 100 to money earned
+        EEPROM.update(moneyAddress, money); // update money EEPROM
+        taxiPickupDistance = distanceTraveled; 
         valuesShownVar = SHOWING_VALUES;
         drivingStateVar = LINEFOLLOWER_NORMAL;
     }
 }
 
+// function for calculating time after setup in seconds //
 void calculateTimePassedForValues()
 {
     timePassedForValues = ((millis() - setupDoneTimer) / 1000);
 }
 
+// function for calculating time after setup in milliseconds //
 void calculateTimePassedAfterSetup()
 {
     timePassedAfterSetup = millis() - setupDoneTimer;
 }
 
+// Loop function //
 void loop()
 {
 
-    updateEEprom();
-    distanceTraveled = calculateDistanceTraveled();
-    highestSpeed = updateHighestSpeed();
-    updateDrivingStateVar();
-    calculateSpeed();
-    calculateTimePassedForValues();
-    calculateTimePassedAfterSetup();
+    updateEEprom(); // update eeprom function called
+    distanceTraveled = calculateDistanceTraveled(); // distance traveled function called and stored in variable
+    highestSpeed = updateHighestSpeed(); // highest speed function called and stored in variable
+    updateDrivingStateVar(); // update driving state function called
+    calculateSpeed(); // calculate speed function called
+    calculateTimePassedForValues(); // calculate time function called
+    calculateTimePassedAfterSetup(); // calculate time after setup function called
 
+    // switch case for driving state //
     switch (drivingStateVar)
     {
     case LINEFOLLOWER_NORMAL:
@@ -1010,6 +1071,7 @@ void loop()
         break;
     }
 
+    // switch case for values shown //
     switch (valuesShownVar)
     {
     case SHOWING_VALUES:
@@ -1019,21 +1081,21 @@ void loop()
             display.clear();
             previousMillis2 = timePassedAfterSetup;
             previousBatteryStatusShown = timePassedAfterSetup;
-            valuesShownVar = SHOWING_AVERAGES;
+            valuesShownVar = SHOWING_AVERAGES; // display after 60 seconds
             break;
         }
-        if (timePassedAfterSetup - previousBatteryStatusShown >= 10000)
+        if (timePassedAfterSetup - previousBatteryStatusShown >= 10000) 
         {
             display.clear();
             previousBatteryStatusShown = timePassedAfterSetup;
-            valuesShownVar = SHOWING_BATTERY_STATUS;
+            valuesShownVar = SHOWING_BATTERY_STATUS; // display after 10 seconds
         }
         break;
 
     case SHOWING_AVERAGES:
         displayAverageDistance();
         timePassedForAverage = (timePassedAfterSetup - previousMillis2) / 1000;
-        if (timePassedAfterSetup - previousMillis2 >= 3000)
+        if (timePassedAfterSetup - previousMillis2 >= 3000) // display for 3 seconds
         {
             display.clear();
             previousMillis2 = timePassedAfterSetup;
@@ -1045,7 +1107,7 @@ void loop()
     case SHOWING_BATTERY_STATUS:
         displayBatteryStatus();
         timePassedForBatteryStatus = (timePassedAfterSetup - previousBatteryStatusShown) / 1000;
-        if (timePassedAfterSetup - previousBatteryStatusShown >= 3000)
+        if (timePassedAfterSetup - previousBatteryStatusShown >= 3000) // display for 3 seconds
         {
             display.clear();
             valuesShownVar = SHOWING_VALUES;
@@ -1055,7 +1117,7 @@ void loop()
 
     case SHOWING_AFTER_CHARGING:
         displayAfterCharging();
-        if (millis() - serviceDoneTimer >= 15000)
+        if (millis() - serviceDoneTimer >= 15000) // display for 15 seconds
         {
             display.clear();
             totalMoneySpentLastTransaction = 0;
@@ -1064,42 +1126,27 @@ void loop()
         break;
 
     case TAXI_MODE:
-        display.print("TAXI MODE");
+        display.print("TAXI MODE"); // display taxi mode during taxi mode
 
     default:
         break;
     }
 
-    ////////////////////////////////
-    ////////// DISPLAY END /////////
-    ////////////////////////////////
-
-    ///////////////////////////////////
-    ////////// BatteryHealth //////////
-    ///////////////////////////////////
-
-    randomEvent();
+    randomEvent(); // random event function called
 
     if ((batteryLevel <= 5) && (batteryHealth > 10) && (batteryLevelUnderFivePercentReductionGiven == false))
     {
-        batteryHealth = batteryHealth - 10;
+        batteryHealth = batteryHealth - 10; // reduce batteryhealth by 10 if battery level is under 5%
         EEPROM.update(batteryHealthAddress, batteryHealth);
         batteryLevelUnderFivePercentReductionGiven = true;
     }
 
-    ///////////////////////////////////
-    //////// BatteryHealth End ////////
-    ///////////////////////////////////
-
-    //////////////////////////////////
-    ////////// BatteryLevel //////////
-    //////////////////////////////////
 
     if (cmPerSecond > maxSpeedCmPerSecond * 0.7)
     {
         if (millis() - previousTimeForSpeed >= 1000)
         {
-            batteryLevel = batteryLevel - 1;
+            batteryLevel = batteryLevel - 1; // reduce battery level by 1 every second if speed is over 70% of max speed
             EEPROM.update(batteryLevelAddress, batteryLevel);
             previousTimeForSpeed = millis();
         }
@@ -1109,7 +1156,7 @@ void loop()
     {
         if (millis() - previousTimeForSpeed2 >= 10000)
         {
-            batteryLevel = batteryLevel - 1;
+            batteryLevel = batteryLevel - 1; // reduce battery level by 1 every 10 seconds if speed is under 70% of max speed
             EEPROM.update(batteryLevelAddress, batteryLevel);
             previousTimeForSpeed2 = millis();
         }
@@ -1117,9 +1164,10 @@ void loop()
 
     if (batteryLevel <= 10 && underTenPercentAlertVar == NORMAL_UNDER_TEN_PERCENT_ALERT)
     {
-        underTenPercentAlertVar = UNDER_TEN_PERCENT;
+        underTenPercentAlertVar = UNDER_TEN_PERCENT; // under ten percent alert
     }
 
+    // switch case for under ten percent alert //
     switch (underTenPercentAlertVar)
     {
     case UNDER_TEN_PERCENT:
@@ -1140,33 +1188,35 @@ void loop()
 
     if ((batteryLevel <= 5) && (millis() - previousBatteryAlert >= 10000))
     {
-        underFivePercentAlertFunc();
+        underFivePercentAlertFunc(); // under five percent alert every 10 seconds
     }
+
 
     if ((batteryLevel <= 1) && (zeroPercentStageVar == ZERO_PERCENT_NORMAL))
     {
         holdWhileTillShaken = true;
-        zeroPercentStageVar = STUCK_IN_WHILE;
+        zeroPercentStageVar = STUCK_IN_WHILE; // if battery level is 0, go to while loop
     }
 
     if (zeroPercentStageVar == STUCK_IN_WHILE)
     {
-        while (holdWhileTillShaken == true)
+        while (holdWhileTillShaken == true) // while loop to simulate flat battery
         {
             motors.setSpeeds(0, 0);
             display.clear();
             imu.read();
 
-            static bool wasShaken = false;
+            static bool wasShaken = false; // Variable to store if car was shaken
 
-            float shakeValue = ((imu.a.x - imu.g.x) / (imu.a.y - imu.g.y));
+            float shakeValue = ((imu.a.x - imu.g.x) / (imu.a.y - imu.g.y)); // Calculate shake value
 
+            // check for shaking
             if (shakeValue > shakeThreshold)
             {
                 if (!wasShaken)
                 {
                     wasShaken = true;
-                    totalCarShakes += 1;
+                    totalCarShakes += 1; // count total car shakes
                 }
             }
 
@@ -1178,7 +1228,7 @@ void loop()
                 }
             }
 
-            if (totalCarShakes >= 5)
+            if (totalCarShakes >= 5) // if car is shaken 5 times, go to emergency power
             {
                 batteryLevel = batteryLevel + 20;
                 batteryLevelUnderFivePercentReductionGiven = false;
