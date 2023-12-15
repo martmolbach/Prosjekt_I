@@ -22,12 +22,14 @@ DistanceSensor distanceSensor;
 const byte ROWS = 4;
 const byte COLS = 4;
 
+// Define the Keymap
 char keys[ROWS][COLS] = {
     {'1', '2', '3', 'A'},
     {'4', '5', '6', 'B'},
     {'7', '8', '9', 'C'},
     {'*', '0', '#', 'D'}};
 
+// Define the keypads row and column pins
 byte rowPins[ROWS] = {10, 9, 8, 7};
 byte colPins[COLS] = {6, 5, 4, 3};
 
@@ -39,14 +41,12 @@ unsigned int readingTimer = 500;
 unsigned int changeViewState = 0;
 int serialPrintChanger = 1;
 
-// Initialize variables for keypad
-bool enterPasswordStart = false;
-bool commitPassword = false;
-bool unlockDoor = false;
-String passwordHolder;
+bool enterPasswordStart = false; // Variable to check if '*' is pressed
+bool commitPassword = false;     // Variable to check if '#' is pressed
+bool unlockDoor = false;         // Variable to check if password is correct
+String passwordHolder;           // String to store password input from keypad
 
-// Initialize state for pulse in distance sensor
-int pulseState = HIGH;
+int pulseState = HIGH; // Pulse state for distance sensor
 
 // Function to check if recieved IR protocol is unknown
 bool checkIfUnknownProtocol()
@@ -58,7 +58,7 @@ bool checkIfUnknownProtocol()
   return false;
 }
 
-// Setup function
+
 void setup()
 {
   // Set up serial communication at 115200 baud rate
@@ -169,7 +169,6 @@ void loop()
   keyPadSetup.passwordCommit(keyPress);     // Commit to comparing passwordHolder to correct password
   keyPadSetup.passwordCompare();            // Compare passwordHolder to correct password (Open Door / Wrong password)
 
-
   ////////////////////////////////////////////
   ////////////////////////////////////////////
   //////////////DISTANCE SENSOR///////////////
@@ -177,7 +176,7 @@ void loop()
   ////////////////////////////////////////////
 
   // Changes the pulseState variable from HIGH to LOW every 15 micro seconds
-  /*if (timer3.isFinishedMicros(15))
+  if (timer3.isFinishedMicros(15))
   {
     timer3.resetMicros(); // reset the timer
     pulseState = !pulseState;
@@ -185,7 +184,7 @@ void loop()
   }
   distanceSensor.calculateDuration(); // Calculates the duration of the sound wave
   distanceSensor.calculateDistance(); // calculates the distance to the object
-*/
+
   ////////////////////////////////////////////
   ////////////////////////////////////////////
   ////////////SERIAL PRINT CHANGER////////////
