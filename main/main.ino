@@ -1,7 +1,8 @@
-
 #include <Zumo32U4.h>
 #include <Wire.h>
 #include <EEPROM.h>
+
+// Initialize all necessary objects from the Zumo32U4 library
 Zumo32U4Encoders encoder;
 Zumo32U4Buzzer buzzer;
 Zumo32U4LineSensors lineSensors;
@@ -12,97 +13,95 @@ Zumo32U4ButtonB buttonB;
 Zumo32U4ButtonC buttonC;
 Zumo32U4IMU imu;
 
-#include "enums.h"
-#include "timer.h"
-
-Timer timer1;
+#include "enums.h" // Contains all enums used in the program
 
 // SPEDOMETER //
-const float countPerRotation = 75.81 * 12;
-unsigned long previousMillis = 0;
-unsigned long leftEncoderCount = 0;
-float rotationCount = 0;
-float previousRotationCount = 0;
-float distanceTraveled = 0;
-float cmPerSecond = 0;
-float rotationsPerSecond = 0;
-float highestSpeed = 0;
+
+const float countPerRotation = 75.81 * 12; // encoder counts per rotation
+unsigned long previousMillis = 0;          // Variable to store previous time
+unsigned long leftEncoderCount = 0;        // Encoder count on left wheel
+float rotationCount = 0;                   // Rotation count on left wheel
+float previousRotationCount = 0;           // Previous rotation count left wheel
+float distanceTraveled = 0;                // Distance traveled in meters
+float cmPerSecond = 0;                     // Speed in cm per second
+float rotationsPerSecond = 0;              // Rotations of wheels per second
+float highestSpeed = 0;                    // Highest speed in cm per second
 // Speedometer End //
 
 // Display //
-unsigned long previousMillis2 = 0;
-unsigned long previousBatteryStatusShown = 0;
-int timePassedForValues = 0;
-int timePassedForAverage = 0;
-int timePassedForBatteryStatus = 0;
+unsigned long previousMillis2 = 0;            // Variable to store previous time
+unsigned long previousBatteryStatusShown = 0; // Variable to store previous shown battery status
+int timePassedForValues = 0;                  // Time passed for values to be shown
+int timePassedForAverage = 0;                 // Time passed for average values to be shown
+int timePassedForBatteryStatus = 0;           // Time passed for battery status to be shown
 // Display end //
 
 // LineFollower || DrivingState //
-float distanceToStation = 0;
-float distanceBeforeLeftTurn = 0;
-float distanceBeforeRightTurn = 0;
-float distanceBeforeRightTurnCharging = 0;
-float taxiPickupDistance = 0;
-const int maxSpeed = 400;
-const int maxSpeedCmPerSecond = 65;
-int16_t lastError = 0;
-const int calibrationTime = 3500;
-const int NUM_SENSORS = 5;
-unsigned int lineSensorValues[NUM_SENSORS];
+float distanceToStation = 0;                // Distance traveled before reaching charging station
+float distanceBeforeLeftTurn = 0;           // Distance traveled before right turn
+float distanceBeforeRightTurn = 0;          // Distance traveled before left turn
+float distanceBeforeRightTurnCharging = 0;  // Distance traveled before right turn charging
+float taxiPickupDistance = 0;               // Distance traveled before taxi pickup
+const int maxSpeed = 400;                   // max speed for Zumo32U4
+const int maxSpeedCmPerSecond = 65;         // max speed in cm per second
+int16_t lastError = 0;                      // Variable to store last error in PID-Line sensor
+const int calibrationTime = 3500;           // Calibration time of line sensor (ms)
+const int NUM_SENSORS = 5;                  // Number of line sensors
+unsigned int lineSensorValues[NUM_SENSORS]; // Array to store line sensor values
 
 // LineFollower end || DrivingState end //
 
-// vet ikke helt hvor dette skal //
-unsigned long setupDoneTimer = 0;
-unsigned long timePassedAfterSetup = 0;
-// vet ikke helt hvor dette skal end //
+// Setup Timing //
+unsigned long setupDoneTimer = 0;       // Timer for when setup is done
+unsigned long timePassedAfterSetup = 0; // time passed after setup
+// Setup Timing end //
 
 // Battery //
-const int shakeThreshold = 500; 
-const int batteryHealthAddress = 0;
-const int batteryLevelAddress = 1;
-const int moneyAddress = 2;
+const int shakeThreshold = 500;     // Shake threshold for battery
+const int batteryHealthAddress = 0; // EEPROM address for battery health
+const int batteryLevelAddress = 1;  // EEPROM address for battery level
+const int moneyAddress = 2;         // EEPROM address for money
 
-unsigned long previousTimeForSpeed = 0;
-unsigned long previousTimeForSpeed2 = 0;
-unsigned long previousNumber = 0;
-unsigned long previousWaitTimeForNext = 0;
-unsigned long lastHealthChange = 0;
-unsigned long waitTimeForNext = 0;
-unsigned long previousBatteryAlert = 0;
-unsigned long underTenPercentAlertGivenMillis = 0;
-unsigned long underTenLightBlink = 0;
-unsigned long serviceDoneTimer = 0;
+unsigned long previousTimeForSpeed = 0;            // Variable to store previous time
+unsigned long previousTimeForSpeed2 = 0;           // Variable to store previous time
+unsigned long previousNumber = 0;                  // Variable to store previous number
+unsigned long lastHealthChange = 0;                // Variable to store last battery health change
+unsigned long previousWaitTimeForNext = 0;         // Variable to store previous wait time for next random
+unsigned long waitTimeForNext = 0;                 // Variable to store wait time for next random
+unsigned long previousBatteryAlert = 0;            // Variable to store previous battery alert
+unsigned long underTenPercentAlertGivenMillis = 0; // Unsigned long variable to store and update display alerts when battery is under 10%
+unsigned long underTenLightBlink = 0;              // Unsigned long variable to store and update blink of lights when battery is under 10%
+unsigned long serviceDoneTimer = 0;                // Timer for when service is done
 
-bool batteryLevelUnderFivePercentReductionGiven = false;
-bool batteryHasCharged = false;
-bool holdWhileTillShaken = false; 
+bool batteryLevelUnderFivePercentReductionGiven = false; // Boolean variable to update if battery reduction under 5% has been given
+bool batteryHasCharged = false;                          // Boolean variable to update if battery has charged
+bool holdWhileTillShaken = false;                        // Boolean variable to update if battery is being shaken
 
-int batteryLevel = 0;
-int batteryHealth = 0;
-int totalCarShakes = 0;
+int batteryLevel = 0;   // Battery level
+int batteryHealth = 0;  // Battery health
+int totalCarShakes = 0; // Total times car has been shaken
+int money = 0;          // balance of money
+
+// Random Numbers//
 int randomNumber1 = 0;
 int randomNumber2 = 0;
 int randomNumber3 = 0;
 int randomNumber4 = 0;
-int totalMoneySpentLastTransaction = 0;
-int totalMoneySpent = 0;
-int moneyEarned = 0;
-int money = 0;
+
+int totalMoneySpentLastTransaction = 0; // Total amount of money spent under last charging / Battery health service
+int totalMoneySpent = 0;                // Total amount of money spent
+int moneyEarned = 0;                    // Amount of money earned
 // Battery end //
 
 // Taxi //
-unsigned long taxiStart = 0;
-unsigned long taxiStop = 0;
-int randomTaxiPercentage = 0;
-int randomTaxiDistance = 0;
+unsigned long taxiStart = 0; // Timer for when taxi starts
+unsigned long taxiStop = 0;  // Timer for when taxi stops
+int randomTaxiPercentage = 0; // Random percentage for when the taxi starts (Compared to the battery level)
+int randomTaxiDistance = 0; // Random distance the taxi travels before it stops and sets of passengers
 // Taxi end //
 
-
-
-
 // GYRO //
-const int stopDuration = 2000;
+const int stopDuration = 2000; // Duration the car stops 
 int forwardCounter = 0;
 float gyroOffsetZ;
 float angle = 0;
@@ -150,7 +149,7 @@ void setup()
     display.gotoXY(9, 4);
     display.print("Done");
     display.clear();
-    
+
     encoder.init();
     randomSeed(millis());
     randomTaxiPercentage = random(30, 90);
@@ -219,7 +218,7 @@ void calibrateSensors(unsigned long startTime)
     motors.setSpeeds(0, 0);
 }
 
-void firkantmodus()
+void squareDriving()
 {
 
     unsigned long currentTime = millis();
@@ -291,7 +290,7 @@ void printAngles()
     display.print(F("  "));
 }
 
-void frem_og_tilbake()
+void forwardsBackwards()
 {
     float targetDistance = 50;
     float turnDistance = 30;
@@ -316,7 +315,6 @@ void frem_og_tilbake()
             previousCurrentTime = currentTime;
             currentState = turnAround;
             angle = 0;
-    
         }
         break;
 
@@ -379,14 +377,13 @@ void waitForAorB()
         else if (buttonB.getSingleDebouncedRelease())
         {
             EEPROM.write(batteryHealthAddress, 100);
-            EEPROM.write(batteryLevelAddress, 100);  
-            EEPROM.write(moneyAddress, 70);          
+            EEPROM.write(batteryLevelAddress, 100);
+            EEPROM.write(moneyAddress, 70);
             display.clear();
             break;
         }
         else if (buttonC.getSingleDebouncedRelease())
         {
-            display.clear();
             display.clear();
             display.print(F("Gyroscope calibrating"));
             delay(500);
@@ -430,7 +427,7 @@ void waitForAorB()
                     display.clear();
                     while (true)
                     {
-                        frem_og_tilbake();
+                        forwardsBackwards();
                         static byte lastCorrectionTime = 0;
                         byte m = millis();
                         if ((byte)(m - lastCorrectionTime) >= 20)
@@ -454,7 +451,7 @@ void waitForAorB()
                     display.clear();
                     while (true)
                     {
-                        firkantmodus();
+                        squareDriving();
                         updateAngleGyro();
                         static byte lastCorrectionTime = 0;
                         byte m = millis();
@@ -529,7 +526,8 @@ void chargingOptions()
                 totalMoneySpentLastTransaction = totalMoneySpentLastTransaction + 1;
                 money = money - 1;
             }
-            if (batteryHasCharged == true){
+            if (batteryHasCharged == true)
+            {
                 batteryHealth = batteryHealth - 10;
                 batteryHasCharged = false;
             }
@@ -835,141 +833,182 @@ void calculateSpeed()
     cmPerSecond = rotationsPerSecond * PI * wheelDiameter; // RPS * omkrets
 }
 
-void loop()
+void updateEEprom()
 {
-
     batteryHealth = EEPROM.read(batteryHealthAddress);
     batteryLevel = EEPROM.read(batteryLevelAddress);
     money = EEPROM.read(moneyAddress);
+}
 
-    distanceTraveled = rotationCount * 3.75 * PI / 100;
-    highestSpeed = updateHighestSpeed();
+int calculateDistanceTraveled()
+{
+    return rotationCount * 3.75 * PI / 100;
+}
 
-    if (drivingStateVar == LINEFOLLOWER_NORMAL)
-    {
-        lineFollower();
-    }
-
+void updateDrivingStateVar()
+{
     if ((lineSensorValues[0] > 600) && (lineSensorValues[1] > 600) && ((drivingStateVar == LINEFOLLOWER_NORMAL) || (drivingStateVar == TAXI_MODE)))
-    { 
+    {
         drivingStateVar = LEFTTURN;
         distanceBeforeLeftTurn = distanceTraveled;
-    }
-
-    if (drivingStateVar == LEFTTURN)
-    {
-        motors.setSpeeds(-100, 100);
-        if (distanceTraveled - distanceBeforeLeftTurn >= 0.1)
-        {
-            drivingStateVar = LINEFOLLOWER_NORMAL;
-        }
     }
     if ((lineSensorValues[0] < 200) && (lineSensorValues[1] > 700) && (lineSensorValues[2] > 700) && (lineSensorValues[3] > 700) && (lineSensorValues[4] < 200) && ((drivingStateVar == LINEFOLLOWER_NORMAL) || (drivingStateVar == TAXI_MODE)) && ((batteryLevel > 10) /*|| (batteryHealth > 10)*/))
     {
         distanceBeforeRightTurn = distanceTraveled;
         drivingStateVar = RIGHTTURN;
     }
-
     if ((lineSensorValues[0] < 200) && (lineSensorValues[1] > 100) && (lineSensorValues[2] > 500) && (lineSensorValues[3] < 300) && (lineSensorValues[4] > 700) && (drivingStateVar == LINEFOLLOWER_NORMAL) && ((batteryLevel < 10) /*|| (batteryHealth < 10)*/))
     {
         distanceBeforeRightTurnCharging = distanceTraveled;
         drivingStateVar = RIGHTTURN_CHARGING;
     }
-
-    if ((lineSensorValues[0] < 200) && (lineSensorValues[1] > 100) && (lineSensorValues[2] > 500) && (lineSensorValues[3] < 300) && (lineSensorValues[4] > 700) && (drivingStateVar == LINEFOLLOWER_NORMAL) && ((batteryHealth < 30) /*|| (batteryHealth < 10)*/))
-    {
-        distanceBeforeRightTurnCharging = distanceTraveled;
-        drivingStateVar = RIGHTTURN_CHARGING;
-    }
-
-    if ((drivingStateVar == RIGHTTURN))
-    { 
-        motors.setSpeeds(-100, 100);
-        if (distanceTraveled - distanceBeforeRightTurn >= 0.05)
-        {
-            drivingStateVar = LINEFOLLOWER_NORMAL;
-        }
-    }
-
-    if ((drivingStateVar == RIGHTTURN_CHARGING))
-    { 
-        motors.setSpeeds(100, -100);
-        if (distanceTraveled - distanceBeforeRightTurnCharging >= 0.075)
-        {
-            distanceToStation = distanceTraveled;
-            drivingStateVar = LINEFOLLOWER_CHARGING;
-        }
-    }
-
-    if (drivingStateVar == LINEFOLLOWER_CHARGING)
-    {
-        lineFollower();
-        if (distanceTraveled - distanceToStation >= 0.65)
-        {
-            drivingStateVar = CHARGING_MODE;
-        }
-    }
-
-    if (drivingStateVar == CHARGING_MODE)
-    {
-        motors.setSpeeds(0, 0);
-        chargingOptions();
-        EEPROM.update(moneyAddress, money);
-        EEPROM.update(batteryLevelAddress, batteryLevel);
-        EEPROM.update(batteryHealthAddress, batteryHealth);
-        randomSeed(millis());
-        randomTaxiPercentage = random(30, 90);
-        randomTaxiDistance = random(1, 3);
-        serviceDoneTimer = millis();
-        valuesShownVar = SHOWING_AFTER_CHARGING;
-        drivingStateVar = LINEFOLLOWER_NORMAL;
-        display.clear();
-    }
-
     if ((batteryLevel == randomTaxiPercentage) && (drivingStateVar == LINEFOLLOWER_NORMAL))
     {
         taxiStart = millis();
         display.clear();
         drivingStateVar = TAXIMODE_PICKUP;
     }
+}
 
-    if (drivingStateVar == TAXIMODE_PICKUP)
+void leftTurn()
+{
+    motors.setSpeeds(-100, 100);
+    if (distanceTraveled - distanceBeforeLeftTurn >= 0.1)
     {
-        valuesShownVar = TAXI_MODE;
-        motors.setSpeeds(0, 0);
-        if (millis() - taxiStart >= 2000)
-        {
-            taxiPickupDistance = distanceTraveled;
-            drivingStateVar = TAXIMODE;
-        }
+        drivingStateVar = LINEFOLLOWER_NORMAL;
     }
-    if (drivingStateVar == TAXIMODE)
-    {
-        lineFollower();
-        if (distanceTraveled - taxiPickupDistance >= randomTaxiDistance)
-        {
-            taxiStop = millis();
-            drivingStateVar = TAXIMODE_STOP;
-        }
-    }
-    if (drivingStateVar == TAXIMODE_STOP)
-    {
-        motors.setSpeeds(0, 0);
-        if (millis() - taxiStop >= 2000)
-        {
-            money = money + 100;
-            moneyEarned = moneyEarned + 100;
-            EEPROM.update(moneyAddress, money);
-            taxiPickupDistance = distanceTraveled;
-            valuesShownVar = SHOWING_VALUES;
-            drivingStateVar = LINEFOLLOWER_NORMAL;
-        }
-    }
+}
 
-    calculateSpeed();
+void rightTurn()
+{
+    motors.setSpeeds(100, -100);
+    if (distanceTraveled - distanceBeforeRightTurn >= 0.05)
+    {
+        drivingStateVar = LINEFOLLOWER_NORMAL;
+    }
+}
 
+void rightTurnCharging()
+{
+    motors.setSpeeds(100, -100);
+    if (distanceTraveled - distanceBeforeRightTurnCharging >= 0.075)
+    {
+        distanceToStation = distanceTraveled;
+        drivingStateVar = LINEFOLLOWER_CHARGING;
+    }
+}
+
+void lineFollowerCharging()
+{
+    lineFollower();
+    if (distanceTraveled - distanceToStation >= 0.65)
+    {
+        drivingStateVar = CHARGING_MODE;
+    }
+}
+
+void chargingMode()
+{
+    motors.setSpeeds(0, 0);
+    chargingOptions();
+    EEPROM.update(moneyAddress, money);
+    EEPROM.update(batteryLevelAddress, batteryLevel);
+    EEPROM.update(batteryHealthAddress, batteryHealth);
+    randomSeed(millis());
+    randomTaxiPercentage = random(30, 90);
+    randomTaxiDistance = random(1, 3);
+    serviceDoneTimer = millis();
+    valuesShownVar = SHOWING_AFTER_CHARGING;
+    drivingStateVar = LINEFOLLOWER_NORMAL;
+    display.clear();
+}
+
+void taxiModePickup()
+{
+    valuesShownVar = TAXI_MODE;
+    motors.setSpeeds(0, 0);
+    if (millis() - taxiStart >= 2000)
+    {
+        taxiPickupDistance = distanceTraveled;
+        drivingStateVar = TAXIMODE;
+    }
+}
+
+void taxiMode()
+{
+    lineFollower();
+    if (distanceTraveled - taxiPickupDistance >= randomTaxiDistance)
+    {
+        taxiStop = millis();
+        drivingStateVar = TAXIMODE_STOP;
+    }
+}
+
+void taxiModeStop()
+{
+    motors.setSpeeds(0, 0);
+    if (millis() - taxiStop >= 2000)
+    {
+        money = money + 100;
+        moneyEarned = moneyEarned + 100;
+        EEPROM.update(moneyAddress, money);
+        taxiPickupDistance = distanceTraveled;
+        valuesShownVar = SHOWING_VALUES;
+        drivingStateVar = LINEFOLLOWER_NORMAL;
+    }
+}
+
+void calculateTimePassedForValues()
+{
     timePassedForValues = ((millis() - setupDoneTimer) / 1000);
+}
+
+void calculateTimePassedAfterSetup()
+{
     timePassedAfterSetup = millis() - setupDoneTimer;
+}
+
+void loop()
+{
+
+    updateEEprom();
+    distanceTraveled = calculateDistanceTraveled();
+    highestSpeed = updateHighestSpeed();
+    updateDrivingStateVar();
+    calculateSpeed();
+    calculateTimePassedForValues();
+    calculateTimePassedAfterSetup();
+
+    switch (drivingStateVar)
+    {
+    case LINEFOLLOWER_NORMAL:
+        lineFollower();
+        break;
+    case LEFTTURN:
+        leftTurn();
+        break;
+    case RIGHTTURN:
+        rightTurn();
+        break;
+    case RIGHTTURN_CHARGING:
+        rightTurnCharging();
+        break;
+    case LINEFOLLOWER_CHARGING:
+        lineFollowerCharging();
+        break;
+    case CHARGING_MODE:
+        chargingMode();
+        break;
+    case TAXIMODE_PICKUP:
+        taxiModePickup();
+        break;
+    case TAXIMODE:
+        taxiMode();
+        break;
+    case TAXIMODE_STOP:
+        taxiModeStop();
+        break;
+    }
 
     switch (valuesShownVar)
     {
@@ -1009,7 +1048,7 @@ void loop()
         if (timePassedAfterSetup - previousBatteryStatusShown >= 3000)
         {
             display.clear();
-            valuesShownVar = SHOWING_VALUES; 
+            valuesShownVar = SHOWING_VALUES;
         }
 
         break;

@@ -28,7 +28,7 @@ struct LineSensorSetup
         display.print("Calibrating...");
         timer1.startTime = millis();
     }
-    void lineSensorSetup2(Zumo32U4LineSensors &lineSensors, Zumo32U4Motors &motors, Zumo32U4OLED &display, Timer &timer1)
+    void lineSensorSetup2(Zumo32U4LineSensors &lineSensors, Zumo32U4Motors &motors, Zumo32U4OLED &display, Timer &timer1, LineSensorSetup &lineSensorSetup)
     {
         calibrateSensors(lineSensors, motors, timer1);
         display.clear();
